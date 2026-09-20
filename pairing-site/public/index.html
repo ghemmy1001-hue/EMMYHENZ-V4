@@ -1,0 +1,838 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+
+<meta charset="UTF-8">
+
+<meta
+  name="viewport"
+  content="width=device-width, initial-scale=1.0"
+>
+
+<title>EMMYHENZ-V4 Pairing</title>
+
+<style>
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+body {
+  min-height: 100vh;
+
+  font-family:
+    Arial,
+    Helvetica,
+    sans-serif;
+
+  background:
+    radial-gradient(
+      circle at top,
+      #35116f,
+      transparent 42%
+    ),
+    linear-gradient(
+      135deg,
+      #05020d,
+      #10051f,
+      #05020d
+    );
+
+  color: white;
+
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  padding: 20px;
+}
+
+.container {
+  width: 100%;
+  max-width: 470px;
+}
+
+.card {
+
+  background:
+    rgba(12, 6, 25, 0.96);
+
+  border:
+    1px solid
+    rgba(168, 85, 247, 0.35);
+
+  border-radius: 28px;
+
+  padding: 32px;
+
+  text-align: center;
+
+  box-shadow:
+    0 0 40px
+    rgba(124, 58, 237, 0.22);
+
+}
+
+.logo {
+
+  font-size: 30px;
+
+  font-weight: 800;
+
+  line-height: 1.25;
+
+  margin-bottom: 10px;
+
+}
+
+.logo span {
+  color: #a855f7;
+}
+
+.subtitle {
+
+  color: #aaa;
+
+  font-size: 17px;
+
+  margin-bottom: 30px;
+
+}
+
+input {
+
+  width: 100%;
+
+  padding: 17px;
+
+  border-radius: 15px;
+
+  border:
+    1px solid
+    #332052;
+
+  background:
+    #080411;
+
+  color: white;
+
+  outline: none;
+
+  font-size: 16px;
+
+  margin-bottom: 15px;
+
+}
+
+input:focus {
+
+  border-color:
+    #9333ea;
+
+  box-shadow:
+    0 0 15px
+    rgba(147, 51, 234, .2);
+
+}
+
+button {
+
+  width: 100%;
+
+  padding: 17px;
+
+  border: none;
+
+  border-radius: 15px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #9333ea,
+      #4f46e5
+    );
+
+  color: white;
+
+  font-size: 16px;
+
+  font-weight: bold;
+
+  cursor: pointer;
+
+  transition: .2s;
+
+}
+
+button:hover {
+  transform: translateY(-1px);
+}
+
+button:disabled {
+  opacity: .55;
+  cursor: wait;
+}
+
+.result {
+
+  margin-top: 28px;
+
+  display: none;
+
+}
+
+.code-title {
+
+  font-size: 16px;
+
+  color: #ddd;
+
+  margin-bottom: 12px;
+
+}
+
+.code {
+
+  min-height: 75px;
+
+  display: flex;
+
+  align-items: center;
+
+  justify-content: center;
+
+  padding: 18px;
+
+  border-radius: 16px;
+
+  background:
+    #080411;
+
+  border:
+    1px solid
+    #7c3aed;
+
+  font-size: 29px;
+
+  letter-spacing: 5px;
+
+  font-weight: bold;
+
+  color: #c084fc;
+
+  word-break: break-all;
+
+}
+
+.status {
+
+  margin-top: 15px;
+
+  font-size: 15px;
+
+  color: #c084fc;
+
+  line-height: 1.5;
+
+}
+
+.status.connected {
+  color: #22c55e;
+}
+
+.status.error {
+  color: #ef4444;
+}
+
+.instructions {
+
+  margin-top: 28px;
+
+  padding-top: 22px;
+
+  border-top:
+    1px solid
+    rgba(255,255,255,.08);
+
+  text-align: left;
+
+  color: #aaa;
+
+  line-height: 1.8;
+
+  font-size: 14px;
+
+}
+
+.instructions b {
+  color: white;
+}
+
+.footer {
+
+  margin-top: 25px;
+
+  color: #666;
+
+  font-size: 12px;
+
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="card">
+
+<div class="logo">
+❄️🌹 <span>EMMYHENZ-V4</span>
+</div>
+
+<div class="subtitle">
+WhatsApp Bot Pairing
+</div>
+
+<input
+  id="phone"
+  type="tel"
+  inputmode="numeric"
+  autocomplete="tel"
+  placeholder="2348012345678"
+>
+
+<button
+  id="pairBtn"
+  onclick="pair()"
+>
+🔗 Generate Pairing Code
+</button>
+
+<div
+  class="result"
+  id="result"
+>
+
+<div class="code-title">
+YOUR PAIRING CODE
+</div>
+
+<div
+  class="code"
+  id="code"
+>
+--------
+</div>
+
+<div
+  class="status"
+  id="status"
+>
+⏳ Waiting for WhatsApp...
+</div>
+
+</div>
+
+<div class="instructions">
+
+<b>How to pair:</b>
+
+<br>
+
+1. Enter your WhatsApp number with country code.
+
+<br>
+
+2. Tap
+<b>Generate Pairing Code</b>.
+
+<br>
+
+3. Wait for the code to appear.
+
+<br>
+
+4. Open WhatsApp.
+
+<br>
+
+5. Go to
+<b>Linked Devices</b>.
+
+<br>
+
+6. Choose
+<b>Link a device</b>.
+
+<br>
+
+7. Enter the pairing code shown above.
+
+</div>
+
+<div class="footer">
+EMMYHENZ TECH • MultiDevice WhatsApp Bot
+</div>
+
+</div>
+
+</div>
+
+
+<script>
+
+let sessionId = null;
+
+let statusTimer = null;
+
+
+/*
+|--------------------------------------------------------------------------
+| Start pairing
+|--------------------------------------------------------------------------
+*/
+
+async function pair() {
+
+  const phone =
+    document
+      .getElementById('phone')
+      .value
+      .trim();
+
+  const button =
+    document
+      .getElementById('pairBtn');
+
+  const result =
+    document
+      .getElementById('result');
+
+  const code =
+    document
+      .getElementById('code');
+
+  const status =
+    document
+      .getElementById('status');
+
+
+  if (!phone) {
+
+    status.textContent =
+      '❌ Enter your WhatsApp number.';
+
+    status.className =
+      'status error';
+
+    result.style.display =
+      'block';
+
+    return;
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Clean number
+  |--------------------------------------------------------------------------
+  */
+
+  const cleanNumber =
+    phone.replace(/\D/g, '');
+
+
+  if (cleanNumber.length < 8) {
+
+    status.textContent =
+      '❌ Enter a valid number with country code.';
+
+    status.className =
+      'status error';
+
+    result.style.display =
+      'block';
+
+    return;
+  }
+
+
+  /*
+  |--------------------------------------------------------------------------
+  | Reset UI
+  |--------------------------------------------------------------------------
+  */
+
+  clearInterval(statusTimer);
+
+  sessionId = null;
+
+  result.style.display =
+    'block';
+
+  code.textContent =
+    '--------';
+
+  status.textContent =
+    '⏳ Connecting to WhatsApp...';
+
+  status.className =
+    'status';
+
+
+  button.disabled =
+    true;
+
+  button.textContent =
+    '⏳ Generating...';
+
+
+  try {
+
+    const response =
+      await fetch(
+        '/api/pair',
+        {
+
+          method: 'POST',
+
+          headers: {
+            'Content-Type':
+              'application/json'
+          },
+
+          body: JSON.stringify({
+            phoneNumber:
+              cleanNumber
+          })
+
+        }
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!data.success) {
+
+      throw new Error(
+        data.error ||
+        'Pairing failed.'
+      );
+
+    }
+
+
+    sessionId =
+      data.sessionId;
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Sometimes the code is already available
+    |--------------------------------------------------------------------------
+    */
+
+    if (data.pairingCode) {
+
+      showPairingCode(
+        data.pairingCode
+      );
+
+    }
+
+
+    status.textContent =
+      '🟣 Waiting for pairing code...';
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Keep checking the session
+    |--------------------------------------------------------------------------
+    */
+
+    startStatusChecking();
+
+
+  } catch (error) {
+
+    status.textContent =
+      '❌ ' +
+      (
+        error.message ||
+        'Unable to start pairing.'
+      );
+
+    status.className =
+      'status error';
+
+    code.textContent =
+      '--------';
+
+  } finally {
+
+    button.disabled =
+      false;
+
+    button.textContent =
+      '🔗 Generate Pairing Code';
+
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Display pairing code
+|--------------------------------------------------------------------------
+*/
+
+function showPairingCode(pairingCode) {
+
+  const code =
+    document
+      .getElementById('code');
+
+  const status =
+    document
+      .getElementById('status');
+
+
+  code.textContent =
+    pairingCode;
+
+
+  status.textContent =
+    '🟣 Enter this code in WhatsApp Linked Devices.';
+
+  status.className =
+    'status';
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Check session status
+|--------------------------------------------------------------------------
+*/
+
+function startStatusChecking() {
+
+  clearInterval(statusTimer);
+
+
+  statusTimer =
+    setInterval(
+      checkStatus,
+      2000
+    );
+
+
+  checkStatus();
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Get session status
+|--------------------------------------------------------------------------
+*/
+
+async function checkStatus() {
+
+  if (!sessionId) {
+    return;
+  }
+
+
+  try {
+
+    const response =
+      await fetch(
+        '/api/status/' +
+        encodeURIComponent(
+          sessionId
+        )
+      );
+
+
+    const data =
+      await response.json();
+
+
+    if (!data.success) {
+      return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | THIS FIXES THE PROBLEM
+    |
+    | The pairing code can arrive after /api/pair responds.
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      data.pairingCode &&
+      data.status !== 'connected'
+    ) {
+
+      showPairingCode(
+        data.pairingCode
+      );
+
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Connected
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      data.status === 'connected'
+    ) {
+
+      const code =
+        document
+          .getElementById('code');
+
+      const status =
+        document
+          .getElementById('status');
+
+
+      code.textContent =
+        'CONNECTED';
+
+
+      status.textContent =
+        '🟢 Connected! Your bot is now online.';
+
+      status.className =
+        'status connected';
+
+
+      clearInterval(
+        statusTimer
+      );
+
+      return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Error
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      data.status === 'error'
+    ) {
+
+      const status =
+        document
+          .getElementById('status');
+
+
+      status.textContent =
+        '❌ ' +
+        (
+          data.error ||
+          'Pairing failed.'
+        );
+
+
+      status.className =
+        'status error';
+
+
+      clearInterval(
+        statusTimer
+      );
+
+      return;
+    }
+
+
+    /*
+    |--------------------------------------------------------------------------
+    | Disconnected
+    |--------------------------------------------------------------------------
+    */
+
+    if (
+      data.status === 'disconnected'
+    ) {
+
+      const status =
+        document
+          .getElementById('status');
+
+
+      status.textContent =
+        '❌ Connection closed. Please try again.';
+
+      status.className =
+        'status error';
+
+
+      clearInterval(
+        statusTimer
+      );
+
+    }
+
+
+  } catch (error) {
+
+    console.log(
+      'Status check error:',
+      error.message
+    );
+
+  }
+
+}
+
+
+/*
+|--------------------------------------------------------------------------
+| Enter key support
+|--------------------------------------------------------------------------
+*/
+
+document
+  .getElementById('phone')
+  .addEventListener(
+    'keydown',
+    function(event) {
+
+      if (
+        event.key === 'Enter'
+      ) {
+
+        pair();
+
+      }
+
+    }
+  );
+
+</script>
+
+</body>
+</html>

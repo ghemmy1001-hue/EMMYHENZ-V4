@@ -1,0 +1,57 @@
+# Dependencies
+node_modules/
+
+# Environment variables / secrets
+.env
+.env.*
+!.env.example
+
+# WhatsApp authentication/session data
+auth/
+auth-*/
+sessions/
+session/
+creds/
+*.session
+*.auth
+
+# Bot data / private runtime data
+data/
+
+# Logs
+*.log
+logs/
+
+# Temporary files
+tmp/
+temp/
+
+# Backups
+*.backup
+*.bak
+*.old
+index.js.backup*
+server.js.backup*
+
+# QR / pairing files
+*.qr
+qr/
+pairing/
+pairing-site/auth/
+
+# OS/editor files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+
+# Termux/runtime files
+*.pid
+
+# Project backup copies
+index*.backup*
+index*-backup*.js
+index-before-*.js
+index-broken-*.js
+index-v3-*.js
+*.before-*.js
