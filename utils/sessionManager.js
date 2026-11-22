@@ -5,10 +5,12 @@ const pino = require('pino');
 const {
   default: makeWASocket,
   useMultiFileAuthState,
-  Browsers
+  Browsers,
+  fetchLatestWaWebVersion
 } = require('@whiskeysockets/baileys');
 
 const SESSIONS_DIR =
+  process.env.SESSIONS_DIR ||
   path.join(
     __dirname,
     '..',
@@ -105,28 +107,20 @@ async function createSession(
       authPath
     );
 
-  const sock =
-    makeWASocket({
-      auth: state,
+const { version } = await fetchLatestWaWebVersion();
+console.log('Using WhatsApp Web version:', version.join('.'));
 
-      logger:
-        pino({
-          level: 'silent'
-        }),
-
-      browser:
-        Browsers.macOS('Chrome'),
-
-      printQRInTerminal: false,
-
-      connectTimeoutMs: 60000,
-
-      defaultQueryTimeoutMs: 60000,
-
-      keepAliveIntervalMs: 15000,
-
-      markOnlineOnConnect: false
-    });
+const sock = makeWASocket({
+  version,
+  auth: state,
+  logger: pino({ level: 'silent' }),
+  browser: Browsers.macOS('Chrome'),
+  printQRInTerminal: false,
+  connectTimeoutMs: 60000,
+  defaultQueryTimeoutMs: 60000,
+  keepAliveIntervalMs: 15000,
+  markOnlineOnConnect: false
+});
 
   const session = {
     number,
@@ -147,7 +141,6 @@ async function createSession(
     'creds.update',
     saveCreds
   );
-
   /*
   |--------------------------------------------------------------------------
   | CONNECTION UPDATE
@@ -163,7 +156,12 @@ async function createSession(
         lastDisconnect,
         qr
       } = update;
-
+ console.log('[SESSION DEBUG]', {
+  connection,
+  hasQR: Boolean(qr),
+  statusCode: lastDisconnect?.error?.output?.statusCode,
+  error: lastDisconnect?.error?.message
+});
       /*
       |--------------------------------------------------------------------------
       | QR FALLBACK
@@ -281,74 +279,71 @@ async function createSession(
   |--------------------------------------------------------------------------
   | REQUEST PAIRING CODE
   |--------------------------------------------------------------------------
-  |
-  | This happens independently of QR.
-  |
   */
 
-  if (
-    !state.creds.registered
-  ) {
+  let pairingRequested = false;
+  let resolvePairing;
+
+  const pairingReady = new Promise(resolve => {
+    resolvePairing = resolve;
+  });
+
+  // Wait for the socket to become ready before requesting a code.
+  const pairingHandler = async update => {
+    const { connection, qr } = update;
+
+    if (
+      state.creds.registered ||
+      pairingRequested ||
+      !(connection === 'connecting' || qr)
+    ) return;
+
+    pairingRequested = true;
+
     try {
-      console.log(
-        `🔑 Requesting pairing code for ${number}...`
-      );
+      console.log(`Requesting pairing code for ${number}...`);
 
-      const code =
-        await sock.requestPairingCode(
-          number
-        );
+await new Promise(resolve => setTimeout(resolve, 5000));
 
-      session.pairingCode =
-        code;
+if (session.status !== 'connecting') {
+  console.log('Session closed before pairing request.');
+  return;
+}
 
-      session.status =
-        'pairing';
+const code = await sock.requestPairingCode(number);
+      session.pairingCode = code;
+      session.status = 'pairing';
 
-      console.log('');
-      console.log(
-        '╔══════════════════════════════════╗'
-      );
-      console.log(
-        '║        🔐 PAIRING CODE          ║'
-      );
-      console.log(
-        '╚══════════════════════════════════╝'
-      );
-      console.log(
-        `📱 Number: ${number}`
-      );
-      console.log(
-        `🔑 Code: ${code}`
-      );
-      console.log('');
+      console.log(`Pairing code generated for ${number}`);
 
       if (onUpdate) {
-        await onUpdate(
-          session,
-          'pairing'
-        );
+        await onUpdate(session, 'pairing');
       }
-
     } catch (error) {
+      session.status = 'error';
+      session.error = error.message;
 
-      session.status =
-        'error';
-
-      session.error =
-        error.message;
-
-      console.log(
-        `❌ Pairing failed for ${number}:`,
-        error.message
-      );
+      console.log('Pairing error:', error.message);
 
       if (onUpdate) {
-        await onUpdate(
-          session,
-          'error'
-        );
+        await onUpdate(session, 'error');
       }
+    } finally {
+      resolvePairing();
+    }
+  };
+
+  sock.ev.on('connection.update', pairingHandler);
+
+  if (!state.creds.registered) {
+    await Promise.race([
+      pairingReady,
+      new Promise(resolve => setTimeout(resolve, 30000))
+    ]);
+
+    if (!session.pairingCode && session.status === 'connecting') {
+      session.status = 'error';
+      session.error = 'Timed out waiting for WhatsApp connection.';
     }
   }
 
