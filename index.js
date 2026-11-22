@@ -8,18 +8,83 @@ const {
 const pino = require('pino');
 const fs = require('fs');
 const path = require('path');
-
+const readline = require('readline/promises');
 const loadCommands = require('./utils/commandLoader');
 const config = require('./config');
+const startDashboard = require('./utils/dashboard');
+const handleAntiSpam = require('./utils/antiSpam');
 
 const {
   createSession,
   normalizeNumber
 } = require('./utils/sessionManager');
 
+// Render persistent storage
+if (process.env.DATA_ROOT) {
+  const localDataDir = path.join(__dirname, 'data');
+  const persistentDataDir = path.join(process.env.DATA_ROOT, 'data');
+
+  fs.mkdirSync(persistentDataDir, { recursive: true });
+
+  if (
+    fs.existsSync(localDataDir) &&
+    !fs.lstatSync(localDataDir).isSymbolicLink()
+  ) {
+    for (const file of fs.readdirSync(localDataDir)) {
+      const source = path.join(localDataDir, file);
+      const destination = path.join(persistentDataDir, file);
+
+      if (
+        fs.statSync(source).isFile() &&
+        !fs.existsSync(destination)
+      ) {
+        fs.copyFileSync(source, destination);
+      }
+    }
+
+    fs.rmSync(localDataDir, { recursive: true, force: true });
+  }
+
+  if (!fs.existsSync(localDataDir)) {
+    fs.symlinkSync(persistentDataDir, localDataDir, 'dir');
+  }
+}
+
 const commands = loadCommands();
 
+
 const pendingPairing = new Map();
+const rl = readline.createInterface({
+  input: process.stdin,
+  output: process.stdout
+});
+
+async function askPhoneNumber() {
+  const configuredNumber = process.env.PHONE_NUMBER;
+
+  if (configuredNumber) {
+    const cleaned = normalizeNumber(configuredNumber);
+
+    if (cleaned.length < 8) {
+      throw new Error('Invalid PHONE_NUMBER environment variable.');
+    }
+
+    return cleaned;
+  }
+
+  const number = await rl.question(
+    '📱 Enter your WhatsApp number (e.g. 2348012345678): '
+  );
+
+  const cleaned = normalizeNumber(number);
+
+  if (cleaned.length < 8) {
+    console.log('❌ Invalid phone number.');
+    return askPhoneNumber();
+  }
+
+  return cleaned;
+}
 
 /*
 |--------------------------------------------------------------------------
@@ -126,6 +191,10 @@ function formatGroupMessage(
     .replace(
       /@group/gi,
       groupName
+    )
+    .replace(
+      /@number/gi,
+      number
     );
 }
 
@@ -484,7 +553,7 @@ Bot account detected and removed.
         }
 
       } catch (error) {
-        console.log(
+console.log(
           '❌ Group event error:',
           error.message
         );
@@ -677,11 +746,9 @@ async function startBot() {
   const {
     state,
     saveCreds
-  } =
-    await useMultiFileAuthState(
-      './auth'
-    );
-
+  } = await useMultiFileAuthState(
+    process.env.AUTH_DIR || './auth'
+  );
   const sock =
     makeWASocket({
       auth: state,
@@ -704,12 +771,46 @@ async function startBot() {
 
       markOnlineOnConnect: false
     });
+  let phoneNumber = null;
 
+  if (!state.creds.registered) {
+    phoneNumber = await askPhoneNumber();
+  }
   sock.ev.on(
     'creds.update',
     saveCreds
   );
 
+  // START LOCAL CONTROL PANEL
+  startDashboard({
+    sock,
+    commands
+  });
+
+  if (phoneNumber) {
+    try {
+      console.log('\n⏳ Requesting pairing code...\n');
+
+      const code = await sock.requestPairingCode(
+        phoneNumber
+      );
+
+      console.log('================================');
+      console.log('       EMMYHENZ-V4');
+      console.log('================================');
+      console.log('🔐 YOUR PAIRING CODE:', code);
+      console.log('================================');
+      console.log('Open WhatsApp → Linked Devices');
+      console.log('Choose Link with phone number');
+      console.log('Enter the pairing code.');
+      console.log('================================\n');
+
+    } catch (error) {
+      console.log('❌ Pairing error:', error.message);
+    } finally {
+      rl.close();
+    }
+  }
   registerGroupEvents(sock);
 
   /*
@@ -845,6 +946,44 @@ async function startBot() {
           return;
         }
 
+// Ignore the bot's own messages for automatic reactions.
+// Owner commands will still be processed below.
+if (msg.key.fromMe) {
+  const ownText = getText(msg.message);
+
+  if (!ownText?.startsWith(config.PREFIX)) {
+    return;
+  }
+}
+        const chat = msg.key.remoteJid;
+
+        if (!chat.endsWith('@broadcast')) {
+          try {
+            const fs = require('fs');
+            const path = require('path');
+            const settingsFile = path.join(__dirname, 'data', 'autoreact.json');
+
+            if (fs.existsSync(settingsFile)) {
+              const settings = JSON.parse(
+                fs.readFileSync(settingsFile, 'utf8')
+              );
+
+              const auto = settings[chat];
+
+              if (auto?.enabled && auto?.emoji) {
+                await sock.sendMessage(chat, {
+                  react: {
+                    text: auto.emoji,
+                    key: msg.key
+                  }
+                });
+              }
+            }
+          } catch (error) {
+            console.error('AutoReact error:', error.message);
+          }
+        }
+
         const sender = msg.key.remoteJid;
 
         global.onlineChats = global.onlineChats || new Set();
@@ -858,6 +997,18 @@ async function startBot() {
         if (!text) {
           return;
         }
+
+        // ANTI-SPAM PROTECTION
+        const spamDetected = await handleAntiSpam(
+          sock,
+          msg,
+          text
+        );
+
+        if (spamDetected) {
+          return;
+        }
+
 
         console.log(
           `📩 ${sender}: ${text}`
