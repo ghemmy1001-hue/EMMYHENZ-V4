@@ -72,6 +72,12 @@ async function askPhoneNumber() {
     return cleaned;
   }
 
+  if (!process.stdin.isTTY) {
+    throw new Error(
+      'PHONE_NUMBER is missing. Add it to your Render environment variables.'
+    );
+  }
+
   const number = await rl.question(
     '📱 Enter your WhatsApp number (e.g. 2348012345678): '
   );
